@@ -1,0 +1,157 @@
+#include<iostream>
+#include<algorithm>
+#include<cassert>
+#include<set>
+#include<map>
+#include<vector>
+using namespace std;
+
+struct Node;
+struct Arc;
+struct Graph
+{
+    set<Node*> nodes;
+    vector<Arc*> arcs;
+    map<int, Node*> nodeMap;
+};
+struct Node
+{
+    int nodeVal;
+    int parent;
+    int rank;
+    set<Arc*> arcs;
+};
+struct Arc
+{
+    Node* fromNode;
+    Node* toNode;
+    int weight;
+};
+class DisjointSet
+{
+    public:
+    void makeSet(Graph& G, int vertex)
+    {
+        Node* node = G.nodeMap[vertex];
+        node->parent = vertex;
+        node->rank = 0;
+    }
+    int findSet(Graph& G, int vertex)
+    {
+        Node* node = G.nodeMap[vertex];
+        /*if(node->parent == vertex)
+            return vertex;
+        else
+            return(findSet(G, node->parent));*/
+        if(vertex != node->parent)
+            node->parent = findSet(G, node->parent);
+        return node->parent;
+    }
+    void Union(Graph& G, int root1, int root2)
+    {
+        Link(G, findSet(G, root1), findSet(G,root2));
+        
+    }
+    void Link(Graph& G, int x, int y)
+    {
+        Node* node1 = G.nodeMap[x];
+        Node* node2 = G.nodeMap[y];
+        if(node1->rank > node2->rank)
+            node2->parent = x;
+        else
+        {
+            node1->parent = y;
+            if(node1->rank == node2->rank)
+                node2->rank = node2->rank + 1;
+        }
+    }
+};
+
+void addNode(Graph& G, int elem);
+void addArc(Graph& G, int src, int dst, int wt);
+void initializeGraph(Graph& G);
+void kruskal(Graph& G);
+bool ascByWeight(Arc* x, Arc* y);
+int main()
+{
+    Graph g;
+    initializeGraph(g);
+    kruskal(g);
+    g.nodes.clear();
+    g.arcs.clear();
+    return 0;
+}
+void addNode(Graph& G, int elem)
+{
+    Node* node = new Node;
+    node->nodeVal = elem;
+    G.nodes.insert(node);
+    G.nodeMap[elem] = node;
+}
+void addArc(Graph& G, int src, int dst, int wt)
+{
+    Arc* arc = new Arc;
+    arc->fromNode = G.nodeMap[src];
+    arc->toNode = G.nodeMap[dst];
+    arc->weight = wt;
+    G.arcs.push_back(arc);
+    G.nodeMap[src]->arcs.insert(arc);
+}
+void initializeGraph(Graph& G)
+{
+    int vertices, edges, i, src, dst, wt;
+    cin >> vertices >> edges;
+    assert(vertices >= 2 && vertices <= 3000);
+    assert(edges >=1 && edges <= vertices*(vertices-1)/2);
+    for(i=1; i<=vertices; i++)
+    {
+        addNode(G, i);
+    }
+    for(i=1; i<=edges; i++)
+    {
+        cin >> src >> dst >> wt;
+        assert(src >= 1 && src <= vertices);
+        assert(dst >= 1 && dst <= vertices);
+        assert(wt >= 0 && wt <= 100000);
+        addArc(G, src, dst, wt);
+        addArc(G, dst, src, wt);
+    }
+    int source;
+    cin >> source;
+    assert(source >= 1 && source <= vertices);
+}
+
+void kruskal(Graph& G)
+{
+    int pathSum = 0;
+    DisjointSet ds;
+    //set<Arc*> A;
+    set<Node*>::iterator it;
+    for(it=G.nodes.begin(); it!=G.nodes.end(); it++)
+    {
+        Node* node = *it;
+        ds.makeSet(G, node->nodeVal);
+    }
+    sort(G.arcs.begin(), G.arcs.end(), ascByWeight);
+    vector<Arc*>::iterator itA;
+    for(itA=G.arcs.begin(); itA!=G.arcs.end(); itA++)
+    {
+        Arc* arc = *itA;
+        if(ds.findSet(G, arc->fromNode->nodeVal) != ds.findSet(G, arc->toNode->nodeVal))
+        {
+            //A.insert(arc);
+            pathSum += arc->weight;
+            ds.Union(G, arc->fromNode->nodeVal, arc->toNode->nodeVal);
+        }
+    }
+    //set<Arc*>::iterator itB;
+    //for(itB=A.begin(); itB!=A.end(); itB++)
+    //{
+        //cout << (*itB)->fromNode->nodeVal << "-->" << (*itB)->toNode->nodeVal << " :" <<(*itB)->weight << endl;
+    //}
+    cout << pathSum;
+}
+bool ascByWeight(Arc* x, Arc* y)
+{
+    return x->weight < y->weight;
+}
